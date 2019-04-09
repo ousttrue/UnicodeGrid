@@ -5,5 +5,12 @@
         "\\w+\\.h",
         "\\w+_DECL",
     ],
-    "cSpell.words": []
+    "cSpell.words": [
+        "cindex",
+        "dlang",
+        "llvm",
+        "mkdir",
+        "struct",
+        "uuidof"
+    ]
 }
