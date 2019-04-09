@@ -12,6 +12,7 @@
         "llvm",
         "mkdir",
         "struct",
+        "typedef",
         "uuidof"
     ]
 }

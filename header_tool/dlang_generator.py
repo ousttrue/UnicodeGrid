@@ -1,5 +1,5 @@
 import pathlib
-from typing import Dict
+from typing import Dict, List, Tuple, IO, Any
 from clang_parser import ClangHeader, ClangStruct, ClangEnum, ClangInterface
 
 
@@ -22,6 +22,23 @@ TAIL = (
 )
 
 
+def typedef(s: IO[Any], values: List[Tuple[str, str]]) -> None:
+    for v in values:
+        s.write(f'alias {v[1]} = {v[0]};\n')
+
+
+def enum(s: IO[Any], values: List[ClangEnum]) -> None:
+    for v in values:
+        s.write(f'''
+enum {v.name}
+{{
+''')
+        for vv in v.values:
+            s.write(f'{vv[0]} = {vv[1]},\n')
+
+    s.write('}')
+
+
 def struct_begin(struct: ClangStruct) -> str:
     return f'''
 struct {struct.name}
@@ -29,20 +46,7 @@ struct {struct.name}
 '''
 
 
-def struct_end(struct: ClangStruct) -> str:
-    return f'''
-}}
-'''
-
-
-def enum_begin(enum: ClangEnum) -> str:
-    return f'''
-enum {enum.name}
-{{
-'''
-
-
-def enum_end(enum: ClangEnum) -> str:
+def struct_end(_struct: ClangStruct) -> str:
     return f'''
 }}
 '''
@@ -52,7 +56,7 @@ def interface(i: ClangInterface) -> str:
     b = i.iid
 
     return f'''
-interface {i.name}: {i.base}        
+interface {i.name}: {i.base}
 {{
     static immutable uuidof = GUID(0x{b[0:8]}, 0x{b[8:12]}, 0x{b[12:16]}, [0x{b[16:18]}, 0x{b[18:20]}, 0x{b[20:22]}, 0x{b[22:24]}, 0x{b[24:26]}, 0x{b[26:28]}, 0x{b[28:30]}, 0x{b[30:32]}]);
 {"".join("    " + str(m) for m in i.methods)}}}
@@ -64,35 +68,26 @@ def generate(source: pathlib.Path, kit_name: str, headers: Dict[str, ClangHeader
     root = source / 'windowskits' / package_name
     root.mkdir(parents=True, exist_ok=True)
 
-    #package = root / 'package.d'
-    package = root.parent / f'{root.stem}.d'
+    package = root / 'package.d'
     with package.open('w') as p:
-        #p.write(f'module windowskits.{package_name};\n\n')
-        p.write(HEAD)
+        p.write(f'module windowskits.{package_name};\n\n')
 
         for k, v in headers.items():
             name = pathlib.Path(k).stem
-            #p.write(f'public import {name};\n')
+            p.write(f'public import {name};\n')
 
             dst = root / f'{name}.d'
             print(dst)
 
-            # with dst.open('w') as d:
-            for _ in range(1):
-                d = p
+            with dst.open('w') as d:
 
-                # d.write(HEAD)
+                d.write(HEAD)
 
                 # alias
-                for x in v.typedef_list:
-                    d.write(f'alias {x[1]} = {x[0]};\n')
+                typedef(d, v.typedef_list)
 
                 # enum
-                for x in v.enum_list:
-                    d.write(enum_begin(x))
-                    for y in x.values:
-                        d.write(f'{y[0]} = {y[1]},\n')
-                    d.write(enum_end(x))
+                enum(d, v.enum_list)
 
                 # struct
                 for x in v.struct_list:
@@ -110,5 +105,4 @@ def generate(source: pathlib.Path, kit_name: str, headers: Dict[str, ClangHeader
                             .replace('&', '*')
                             )
 
-                # d.write(TAIL)
-        p.write(TAIL)
+                d.write(TAIL)
