@@ -7,7 +7,7 @@ from typing import List, Optional, Dict, Tuple
 from clang import cindex
 
 
-class ClangMethodArgument:
+class ClangNamedType:
     def __init__(self, name, t) -> None:
         self.name = name
         self.type = t
@@ -20,11 +20,11 @@ class ClangMethod:
     def __init__(self, cursor: cindex.Cursor) -> None:
         self.name = cursor.spelling
         self.result = cursor.result_type.spelling
-        self.args: List[ClangMethodArgument] = []
+        self.args: List[ClangNamedType] = []
 
         for x in cursor.get_children():
             if x.kind == cindex.CursorKind.PARM_DECL:
-                self.args.append(ClangMethodArgument(
+                self.args.append(ClangNamedType(
                     x.spelling, x.type.spelling))
 
     def __str__(self) -> str:
@@ -72,19 +72,20 @@ class ClangInterface:
 
         return ClangInterface(iid, name, base, methods)
 
-    def __init__(self, iid: str, name: str, base: str, methods: List[ClangMethod]) -> None:
-        self.iid = iid
+    def __init__(self, b: str, name: str, base: str, methods: List[ClangMethod]) -> None:
         self.name = name
         self.base = base
         self.methods = methods
+        self.guid = f'0x{b[0:8]}, 0x{b[8:12]}, 0x{b[12:16]}, [0x{b[16:18]}, 0x{b[18:20]}, 0x{b[20:22]}, 0x{b[22:24]}, 0x{b[24:26]}, 0x{b[26:28]}, 0x{b[28:30]}, 0x{b[30:32]}'
 
 
 class ClangStruct:
     def __init__(self, cursor: cindex.Cursor) -> None:
         self.name = cursor.spelling
-
-    def __str__(self) -> str:
-        return self.name
+        self.fields: List[ClangNamedType] = []
+        for x in cursor.get_children():
+            if x.kind == cindex.CursorKind.FIELD_DECL:
+                self.fields.append(ClangNamedType(x.spelling, x.type.spelling))
 
 
 class ClangEnum:

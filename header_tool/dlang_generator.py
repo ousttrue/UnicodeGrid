@@ -1,6 +1,6 @@
 import pathlib
 from typing import Dict, List, Tuple, IO, Any
-from clang_parser import ClangHeader, ClangStruct, ClangEnum, ClangInterface
+from clang_parser import ClangHeader, ClangStruct, ClangEnum, ClangInterface, ClangMethod
 from jinja2 import Template
 
 
@@ -31,37 +31,60 @@ def typedef(s: IO[Any], values: List[Tuple[str, str]]) -> None:
 def enum(s: IO[Any], values: List[ClangEnum]) -> None:
     template = Template('''{% for enum in enum_list %}
 enum {{ enum.name }} {
-    {% for value in enum.values %}{{ value[0] }} = {{ value[1] }};
-    {% endfor %}
+{%- for value in enum.values %}
+    {{ value[0] }} = {{ value[1] }};
+{%- endfor %}
 }
 {% endfor %}
-    ''')
+''')
 
     s.write(template.render(enum_list=values))
 
 
-def struct_begin(struct: ClangStruct) -> str:
-    return f'''
-struct {struct.name}
-{{
-'''
+def struct(s: IO[Any], values: List[ClangStruct]) -> None:
+    template = Template('''{% for struct in struct_list %}
+struct {{ struct.name }} {
+{%- for value in struct.fields %}
+    {{ value.type }} {{ value.name }};
+{%- endfor %}
+}
+{% endfor %}''')
+
+    s.write(template.render(struct_list=values))
 
 
-def struct_end(_struct: ClangStruct) -> str:
-    return f'''
-}}
-'''
+def interface(s: IO[Any], values: List[ClangInterface]) -> None:
+    template = Template('''{% for i in interface_list %}
+interface {{ i.name }}: {{ i.base }} {
+    static immutable uuidof = GUID({{ i.guid }});
+{%- for m in i.methods %}
+    {{ m.result }} {{ m.name }}(
+    {%- for arg in m.args -%}
+        {% if not loop.first %}, {% endif %}{{ arg.type }} {{ arg.name }}
+    {%- endfor -%}
+    );
+{%- endfor %}
+}
+{% endfor %}''')
+
+    s.write(template.render(interface_list=values)
+            .replace('&', '*')
+            .replace('*const *', '**')
+            )
 
 
-def interface(i: ClangInterface) -> str:
-    b = i.iid
+def function(s: IO[Any], values: List[ClangMethod]) -> None:
+    template = Template('''{% for f in function_list %}
+{{ f.result }} {{ f.name }}(
+    {%- for arg in f.args -%}
+        {% if not loop.first %}, {% endif %}{{ arg.type }} {{ arg.name }}
+    {%- endfor -%}
+);
+{% endfor %}''')
 
-    return f'''
-interface {i.name}: {i.base}
-{{
-    static immutable uuidof = GUID(0x{b[0:8]}, 0x{b[8:12]}, 0x{b[12:16]}, [0x{b[16:18]}, 0x{b[18:20]}, 0x{b[20:22]}, 0x{b[22:24]}, 0x{b[24:26]}, 0x{b[26:28]}, 0x{b[28:30]}, 0x{b[30:32]}]);
-{"".join("    " + str(m) for m in i.methods)}}}
-'''.replace('&', '*').replace('*const *', '**')
+    s.write(template.render(function_list=values)
+            .replace('&', '*')
+            )
 
 
 def generate(source: pathlib.Path, kit_name: str, headers: Dict[str, ClangHeader]) -> None:
@@ -91,19 +114,12 @@ def generate(source: pathlib.Path, kit_name: str, headers: Dict[str, ClangHeader
                 enum(d, v.enum_list)
 
                 # struct
-                for x in v.struct_list:
-                    d.write(struct_begin(x))
-                    d.write(struct_end(x))
+                struct(d, v.struct_list)
 
                 # interface
-                for i in v.interface_list:
-                    d.write(interface(i))
-                d.write("\n")
+                interface(d, v.interface_list)
 
                 # function
-                for f in v.function_list:
-                    d.write(str(f)
-                            .replace('&', '*')
-                            )
+                function(d, v.function_list)
 
                 d.write(TAIL)
