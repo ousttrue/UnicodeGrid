@@ -46,7 +46,7 @@ class ClangInterface:
             return None
         base = None
         methods: List[ClangMethod] = []
-        uuid = None
+        iid = None
 
         for x in cursor.get_children():
             if x.kind == cindex.CursorKind.CXX_BASE_SPECIFIER:
@@ -59,35 +59,24 @@ class ClangInterface:
                 start = x.extent.start
                 end = x.extent.end
                 text = pathlib.Path(start.file.name).read_bytes()
-                uuid = extract(x).split('"')[1]
+                iid = extract(x).split('"')[1].replace('-', '')
             elif x.kind == cindex.CursorKind.CXX_ACCESS_SPEC_DECL:
                 pass
             else:
                 print(x.kind)
 
-        if not uuid:
+        if not iid:
             return None
         if not base:
             return None
 
-        return ClangInterface(uuid, name, base, methods)
+        return ClangInterface(iid, name, base, methods)
 
-    def __init__(self, uuid: str, name: str, base: str, methods: List[ClangMethod]) -> None:
-        self.uuid = uuid
+    def __init__(self, iid: str, name: str, base: str, methods: List[ClangMethod]) -> None:
+        self.iid = iid
         self.name = name
         self.base = base
         self.methods = methods
-
-    def __str__(self) -> str:
-        '''
-        for dlang
-        '''
-        return f'''
-interface {self.name}: {self.base}        
-{{
-    static immutable uuidof = UUID("{self.uuid}");
-{"".join("    " + str(m) for m in self.methods)}}}
-'''
 
 
 class ClangStruct:
@@ -98,12 +87,22 @@ class ClangStruct:
         return self.name
 
 
+class ClangEnum:
+    def __init__(self, cursor: cindex.Cursor) -> None:
+        self.name = cursor.spelling
+        self.values: List[Tuple[str, int]] = []
+
+        for x in cursor.get_children():
+            self.values.append((x.spelling, x.enum_value))
+
+
 class ClangHeader:
     def __init__(self) -> None:
         self.interface_list: List[ClangInterface] = []
         self.function_list: List[ClangMethod] = []
         self.struct_list: List[ClangStruct] = []
         self.typedef_list: List[Tuple[str, str]] = []
+        self.enum_list: List[ClangEnum] = []
 
 
 def parse(dll: pathlib.Path, path: pathlib.Path, include_headers: List[str]) -> Dict[str, ClangHeader]:
@@ -178,7 +177,9 @@ def parse(dll: pathlib.Path, path: pathlib.Path, include_headers: List[str]) -> 
             return
 
         if cursor.kind == cindex.CursorKind.ENUM_DECL:
-            # ToDo
+            if header:
+                if not any(cursor.spelling == x.name for x in header.enum_list):
+                    header.enum_list.append(ClangEnum(cursor))
             return
 
         if cursor.kind == cindex.CursorKind.MACRO_DEFINITION:
