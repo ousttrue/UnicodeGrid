@@ -1,0 +1,10 @@
+{
+	"name": "windowskits",
+	"authors": [
+		"ousttrue"
+	],
+	"description": "A minimal D application.",
+	"copyright": "Copyright © 2019, ousttrue",
+	"license": "proprietary",
+	"targetType": "library"
+}

@@ -1,0 +1,14 @@
+.dub
+docs.json
+__dummy.html
+docs/
+windowskits_sample.so
+windowskits_sample.dylib
+windowskits_sample.dll
+windowskits_sample.a
+windowskits_sample.lib
+windowskits_sample-test-*
+*.exe
+*.o
+*.obj
+*.lst
