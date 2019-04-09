@@ -7,6 +7,9 @@ WINDOWS_KITS_INCLUDE_DIR = pathlib.Path(
     'C:/Program Files (x86)/Windows Kits/10/Include')
 
 
+HERE = pathlib.Path(__file__).absolute().parent
+
+
 class ClangParser:
     '''
     require
@@ -150,19 +153,25 @@ class ClangParser:
             self.print_cursor(cursor, level)
 
 
-def process_header(header: pathlib.Path) -> None:
-    parser = ClangParser()
-    parser.parse(header)
+class Kit:
+    def __init__(self, kit: pathlib.Path) -> None:
+        self.kit = kit
+        self.parser = ClangParser()
 
+    def parse(self) -> None:
+        header = self.kit/'um/d3d11.h'
+        self.parser.parse(header)
 
-def process_kit(kit: pathlib.Path) -> None:
-    um = kit/'um'
-    process_header(um/'d3d11.h')
+    def generate(self, dst: pathlib.Path) -> None:
+        root = dst / 'windowskits' / self.kit.name.replace('.', '_')
+        root.mkdir(parents=True, exist_ok=True)
 
 
 def main() -> None:
-    kit = sorted(WINDOWS_KITS_INCLUDE_DIR.iterdir())[-1]
-    process_kit(kit)
+    kits = [Kit(x) for x in sorted(WINDOWS_KITS_INCLUDE_DIR.iterdir())]
+    kit = kits[-1]
+    kit.parse()
+    kit.generate(HERE.parent/'windowskits/source')
 
 
 if __name__ == '__main__':
