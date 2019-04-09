@@ -3,7 +3,7 @@ require
 > pip insall clang
 '''
 import pathlib
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Tuple
 from clang import cindex
 
 
@@ -103,6 +103,7 @@ class ClangHeader:
         self.interface_list: List[ClangInterface] = []
         self.function_list: List[ClangMethod] = []
         self.struct_list: List[ClangStruct] = []
+        self.typedef_list: List[Tuple[str, str]] = []
 
 
 def parse(dll: pathlib.Path, path: pathlib.Path, include_headers: List[str]) -> Dict[str, ClangHeader]:
@@ -148,6 +149,11 @@ def parse(dll: pathlib.Path, path: pathlib.Path, include_headers: List[str]) -> 
             if cursor.spelling[0] != 'I':
                 for x in cursor.get_children():
                     traverse(x)
+                    if header:
+                        src = x.spelling
+                        dst = cursor.spelling
+                        if src != dst:
+                            header.typedef_list.append((src, dst))
             return
 
         if cursor.kind == cindex.CursorKind.STRUCT_DECL:

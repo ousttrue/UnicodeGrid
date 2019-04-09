@@ -53,6 +53,10 @@ def generate(source: pathlib.Path, kit_name: str, headers: Dict[str, ClangHeader
 
                 d.write(HEAD)
 
+                # alias
+                for x in v.typedef_list:
+                    d.write(f'alias {x[1]} = {x[0]};\n')
+
                 # struct
                 for x in v.struct_list:
                     d.write(struct_begin(x))
