@@ -1,5 +1,5 @@
 import pathlib
-from typing import List, Dict, Optional
+from typing import List, Optional
 from clang import cindex
 
 
@@ -102,7 +102,8 @@ class ClangParser:
     def __init__(self, dll: pathlib.Path = None) -> None:
         self.dll = dll if dll else pathlib.Path(
             'C:/Program Files (x86)/LLVM/bin/libclang.dll')
-        self.interface_map: Dict[str, ClangInterface] = {}
+        self.interface_list: List[ClangInterface] = []
+        self.function_list: List[ClangMethod] = []
 
     def parse(self, header: pathlib.Path) -> None:
         cindex.Config.set_library_file(str(self.dll))
@@ -113,8 +114,7 @@ class ClangParser:
             self.traverse(child)
 
     def print_cursor(self, cursor: cindex.Cursor, level: int) -> None:
-        pass
-        #print(f'{"  " * (level)}{cursor.kind}: {cursor.displayname}')
+        print(f'{"  " * (level)}{cursor.kind}: {cursor.displayname}')
 
     def traverse(self, cursor: cindex.Cursor, level=0) -> None:
         file = pathlib.Path(cursor.location.file.name).name
@@ -129,7 +129,13 @@ class ClangParser:
         elif cursor.kind == cindex.CursorKind.STRUCT_DECL:
             i = ClangInterface.create(cursor)
             if i:
-                self.interface_map[cursor.spelling] = i
+                self.interface_list.append(i)
+
+        elif cursor.kind == cindex.CursorKind.FUNCTION_DECL:
+            self.function_list.append(ClangMethod(cursor))
+
+        elif cursor.kind == cindex.CursorKind.VAR_DECL:
+            pass
 
         else:
             self.print_cursor(cursor, level)
@@ -155,8 +161,11 @@ def main() -> None:
     kit.parse()
     kit.generate(HERE.parent/'windowskits/source')
 
-    for _, v in kit.parser.interface_map.items():
-        print(v)
+    for i in kit.parser.interface_list:
+        print(i)
+
+    for f in kit.parser.function_list:
+        print(f)
 
 
 if __name__ == '__main__':
