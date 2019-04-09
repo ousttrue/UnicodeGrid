@@ -151,6 +151,7 @@ class ClangInterface:
             return None
         base = None
         methods: List[ClangMethod] = []
+        uuid = None
 
         for x in cursor.get_children():
             if x.kind == cindex.CursorKind.CXX_BASE_SPECIFIER:
@@ -158,22 +159,33 @@ class ClangInterface:
                 base = ref.spelling
             elif x.kind == cindex.CursorKind.CXX_METHOD:
                 methods.append(ClangMethod(x))
+            elif x.kind == cindex.CursorKind.UNEXPOSED_ATTR:
+                start = x.extent.start
+                end = x.extent.end
+                text = pathlib.Path(start.file.name).read_bytes()
+                uuid = text[start.offset:end.offset].decode('ascii').split('"')[1]
+            elif x.kind == cindex.CursorKind.CXX_ACCESS_SPEC_DECL:
+                pass
             else:
                 print(x.kind)
 
+        if not uuid:
+            return None
         if not base:
             return None
 
-        return ClangInterface(name, base, methods)
+        return ClangInterface(uuid, name, base, methods)
 
-    def __init__(self, name: str, base: str, methods: List[ClangMethod])->None:
+    def __init__(self, uuid: str, name: str, base: str, methods: List[ClangMethod])->None:
+        self.uuid = uuid
         self.name = name
         self.base = base
         self.methods = methods
 
     def __str__(self)->str:
         cr= '\n'
-        return f'''{self.name}: {self.base} {{
+        return f'''{self.uuid}
+{self.name}: {self.base} {{
 {cr.join('    ' + str(m) for m in self.methods)}
 }} '''
 
