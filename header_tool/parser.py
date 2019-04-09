@@ -1,5 +1,5 @@
 import pathlib
-from typing import List
+from typing import List, Dict, Optional
 from clang import cindex
 
 
@@ -10,17 +10,9 @@ WINDOWS_KITS_INCLUDE_DIR = pathlib.Path(
 HERE = pathlib.Path(__file__).absolute().parent
 
 
-class ClangParser:
-    '''
-    require
-    > pip insall clang
-    '''
-
-    def __init__(self, dll: pathlib.Path = None) -> None:
-        self.dll = dll if dll else pathlib.Path(
-            'C:/Program Files (x86)/LLVM/bin/libclang.dll')
-        self.exclude_headers: List[str] = [
+exclude_headers = [
             'apiquery2.h',
+
             'cguid.h',
             'combaseapi.h',
             'coml2api.h',
@@ -129,6 +121,74 @@ class ClangParser:
             'wtypesbase.h'
         ]
 
+
+class ClangMethodArgument:
+    def __init__(self, name, t)->None:
+        self.name=name
+        self.type=t
+
+    def __str__(self)->str:
+        return f'{self.type} {self.name}'
+
+class ClangMethod:
+    def __init__(self, cursor: cindex.Cursor)->None:
+        self.name=cursor.spelling
+        self.result=cursor.result_type.spelling
+        self.args: List[ClangMethodArgument]=[]
+
+        for x in cursor.get_children():
+            if x.kind == cindex.CursorKind.PARM_DECL:
+                self.args.append(ClangMethodArgument(x.spelling, x.type.spelling))
+
+    def __str__(self)->str:
+        return f'{self.result} {self.name}({", ".join(str(m) for m in self.args)})'
+
+class ClangInterface:
+    @staticmethod
+    def create(cursor: cindex.Cursor)->Optional['ClangInterface']:
+        name = cursor.spelling
+        if name[0] != 'I':
+            return None
+        base = None
+        methods: List[ClangMethod] = []
+
+        for x in cursor.get_children():
+            if x.kind == cindex.CursorKind.CXX_BASE_SPECIFIER:
+                ref = next(y for y in x.get_children() if y.kind == cindex.CursorKind.TYPE_REF)
+                base = ref.spelling
+            elif x.kind == cindex.CursorKind.CXX_METHOD:
+                methods.append(ClangMethod(x))
+            else:
+                print(x.kind)
+
+        if not base:
+            return None
+
+        return ClangInterface(name, base, methods)
+
+    def __init__(self, name: str, base: str, methods: List[ClangMethod])->None:
+        self.name = name
+        self.base = base
+        self.methods = methods
+
+    def __str__(self)->str:
+        cr= '\n'
+        return f'''{self.name}: {self.base} {{
+{cr.join('    ' + str(m) for m in self.methods)}
+}} '''
+
+
+class ClangParser:
+    '''
+    require
+    > pip insall clang
+    '''
+
+    def __init__(self, dll: pathlib.Path = None) -> None:
+        self.dll = dll if dll else pathlib.Path(
+            'C:/Program Files (x86)/LLVM/bin/libclang.dll')
+        self.interface_map: Dict[str, ClangInterface]={}
+
     def parse(self, header: pathlib.Path) -> None:
         cindex.Config.set_library_file(str(self.dll))
         index = cindex.Index.create()
@@ -138,17 +198,24 @@ class ClangParser:
             self.traverse(child)
 
     def print_cursor(self, cursor: cindex.Cursor, level: int) -> None:
-        print(f'{"  " * (level)}{cursor.kind}: {cursor.displayname}')
+        pass
+        #print(f'{"  " * (level)}{cursor.kind}: {cursor.displayname}')
 
     def traverse(self, cursor: cindex.Cursor, level=0) -> None:
         file = pathlib.Path(cursor.location.file.name).name
-        if file in self.exclude_headers:
+        if file in exclude_headers:
             return
 
         if cursor.kind == cindex.CursorKind.UNEXPOSED_DECL:
             #print(f'{cursor.kind}: {cursor.spelling}')
             for child in cursor.get_children():
                 self.traverse(child, level+1)
+
+        elif cursor.kind == cindex.CursorKind.STRUCT_DECL:
+            i = ClangInterface.create(cursor)
+            if i:
+                self.interface_map[cursor.spelling]=i
+
         else:
             self.print_cursor(cursor, level)
 
@@ -163,7 +230,7 @@ class Kit:
         self.parser.parse(header)
 
     def generate(self, dst: pathlib.Path) -> None:
-        root = dst / 'windowskits' / self.kit.name.replace('.', '_')
+        root = dst / 'windowskits' / f'build_{self.kit.name.replace(".", "_")}'
         root.mkdir(parents=True, exist_ok=True)
 
 
@@ -172,6 +239,9 @@ def main() -> None:
     kit = kits[-1]
     kit.parse()
     kit.generate(HERE.parent/'windowskits/source')
+
+    for k, v in kit.parser.interface_map.items():
+        print(v)
 
 
 if __name__ == '__main__':

@@ -2,7 +2,8 @@
     "python.pythonPath": "C:\\Python36-32\\python.exe",
     "python.linting.pylintEnabled": true,
     "cSpell.ignoreRegExpList": [
-        "\\w+\\.h"
+        "\\w+\\.h",
+        "\\w+_DECL",
     ],
     "cSpell.words": []
 }
