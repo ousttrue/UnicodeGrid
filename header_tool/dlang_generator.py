@@ -1,6 +1,7 @@
 import pathlib
 from typing import Dict, List, Tuple, IO, Any
 from clang_parser import ClangHeader, ClangStruct, ClangEnum, ClangInterface
+from jinja2 import Template
 
 
 HEAD = (
@@ -28,15 +29,15 @@ def typedef(s: IO[Any], values: List[Tuple[str, str]]) -> None:
 
 
 def enum(s: IO[Any], values: List[ClangEnum]) -> None:
-    for v in values:
-        s.write(f'''
-enum {v.name}
-{{
-''')
-        for vv in v.values:
-            s.write(f'{vv[0]} = {vv[1]},\n')
+    template = Template('''{% for enum in enum_list %}
+enum {{ enum.name }} {
+    {% for value in enum.values %}{{ value[0] }} = {{ value[1] }};
+    {% endfor %}
+}
+{% endfor %}
+    ''')
 
-    s.write('}')
+    s.write(template.render(enum_list=values))
 
 
 def struct_begin(struct: ClangStruct) -> str:
