@@ -11,6 +11,7 @@
         "guid",
         "llvm",
         "mkdir",
+        "splited",
         "struct",
         "typedef",
         "uuidof"

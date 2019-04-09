@@ -4,23 +4,21 @@ from clang_parser import ClangHeader, ClangStruct, ClangEnum, ClangInterface, Cl
 from jinja2 import Template
 
 
-HEAD = (
-    '''// this is generated
+IMPORT = '''// this is generated
 import core.sys.windows.windef;
 import core.sys.windows.com;
-import std.uuid;
+'''
 
+HEAD = '''
 extern(Windows){
 
 alias IID = GUID;
 '''
-)
 
-TAIL = (
-    '''
+
+TAIL = '''
 }
 '''
-)
 
 
 def typedef(s: IO[Any], values: List[Tuple[str, str]]) -> None:
@@ -32,7 +30,7 @@ def enum(s: IO[Any], values: List[ClangEnum]) -> None:
     template = Template('''{% for enum in enum_list %}
 enum {{ enum.name }} {
 {%- for value in enum.values %}
-    {{ value[0] }} = {{ value[1] }};
+    {{ value[0] }} = {{ value[1] }},
 {%- endfor %}
 }
 {% endfor %}
@@ -87,39 +85,54 @@ def function(s: IO[Any], values: List[ClangMethod]) -> None:
             )
 
 
+def const(s: IO[Any], values: List[Tuple[str, str]]) -> None:
+    template = Template('''{% for c in const_list -%}
+immutable {{ c[0] }} = {{ c[1] }};
+{% endfor %}''')
+
+    s.write(template.render(const_list=values))
+
+
 def generate(source: pathlib.Path, kit_name: str, headers: Dict[str, ClangHeader]) -> None:
     package_name = f'build_{kit_name.replace(".", "_")}'
     root = source / 'windowskits' / package_name
     root.mkdir(parents=True, exist_ok=True)
 
-    package = root / 'package.d'
-    with package.open('w') as p:
-        p.write(f'module windowskits.{package_name};\n\n')
+    for k, v in headers.items():
+        module_name = pathlib.Path(k).stem
 
-        for k, v in headers.items():
-            name = pathlib.Path(k).stem
-            p.write(f'public import {name};\n')
+        dst = root / f'{module_name}.d'
+        print(dst)
 
-            dst = root / f'{name}.d'
-            print(dst)
+        with dst.open('w') as d:
+            d.write(f'module windowskits.{package_name}.{module_name};\n')
 
-            with dst.open('w') as d:
+            d.write(IMPORT)
+            for kk in headers.keys():
+                if k == kk:
+                    continue
+                if kk in v.include_list:
+                    d.write(
+                        f'public import windowskits.{package_name}.{pathlib.Path(kk).stem};\n')
 
-                d.write(HEAD)
+            d.write(HEAD)
 
-                # alias
-                typedef(d, v.typedef_list)
+            # alias
+            typedef(d, v.typedef_list)
 
-                # enum
-                enum(d, v.enum_list)
+            # constant
+            const(d, v.const_list)
 
-                # struct
-                struct(d, v.struct_list)
+            # enum
+            enum(d, v.enum_list)
 
-                # interface
-                interface(d, v.interface_list)
+            # struct
+            struct(d, v.struct_list)
 
-                # function
-                function(d, v.function_list)
+            # interface
+            interface(d, v.interface_list)
 
-                d.write(TAIL)
+            # function
+            function(d, v.function_list)
+
+            d.write(TAIL)

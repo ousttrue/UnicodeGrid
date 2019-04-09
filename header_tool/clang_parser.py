@@ -56,9 +56,6 @@ class ClangInterface:
             elif x.kind == cindex.CursorKind.CXX_METHOD:
                 methods.append(ClangMethod(x))
             elif x.kind == cindex.CursorKind.UNEXPOSED_ATTR:
-                start = x.extent.start
-                end = x.extent.end
-                text = pathlib.Path(start.file.name).read_bytes()
                 iid = extract(x).split('"')[1].replace('-', '')
             elif x.kind == cindex.CursorKind.CXX_ACCESS_SPEC_DECL:
                 pass
@@ -76,7 +73,7 @@ class ClangInterface:
         self.name = name
         self.base = base
         self.methods = methods
-        self.guid = f'0x{b[0:8]}, 0x{b[8:12]}, 0x{b[12:16]}, [0x{b[16:18]}, 0x{b[18:20]}, 0x{b[20:22]}, 0x{b[22:24]}, 0x{b[24:26]}, 0x{b[26:28]}, 0x{b[28:30]}, 0x{b[30:32]}'
+        self.guid = f'0x{b[0:8]}, 0x{b[8:12]}, 0x{b[12:16]}, [0x{b[16:18]}, 0x{b[18:20]}, 0x{b[20:22]}, 0x{b[22:24]}, 0x{b[24:26]}, 0x{b[26:28]}, 0x{b[28:30]}, 0x{b[30:32]}]'
 
 
 class ClangStruct:
@@ -104,6 +101,8 @@ class ClangHeader:
         self.struct_list: List[ClangStruct] = []
         self.typedef_list: List[Tuple[str, str]] = []
         self.enum_list: List[ClangEnum] = []
+        self.const_list: List[Tuple[str, str]] = []
+        self.include_list: List[str] = []
 
 
 def parse(dll: pathlib.Path, path: pathlib.Path, include_headers: List[str]) -> Dict[str, ClangHeader]:
@@ -184,7 +183,12 @@ def parse(dll: pathlib.Path, path: pathlib.Path, include_headers: List[str]) -> 
             return
 
         if cursor.kind == cindex.CursorKind.MACRO_DEFINITION:
-            # ToDo
+            if header:
+                ext = extract(cursor)
+                splited = ext.split()
+                if len(splited) > 1 and '(' not in splited[0]:
+                    header.const_list.append(
+                        (splited[0], ext[len(splited[0]):].strip()))
             return
 
         if cursor.kind == cindex.CursorKind.VAR_DECL:
@@ -203,6 +207,8 @@ def parse(dll: pathlib.Path, path: pathlib.Path, include_headers: List[str]) -> 
             return
 
         if cursor.kind == cindex.CursorKind.INCLUSION_DIRECTIVE:
+            if header:
+                header.include_list.append(cursor.spelling)
             return
 
         print_cursor(cursor, level)
