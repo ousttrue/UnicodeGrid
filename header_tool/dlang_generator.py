@@ -20,43 +20,56 @@ TAIL = (
 )
 
 
-def struct_begin(struct: ClangStruct):
-    pass
+def struct_begin(struct: ClangStruct) -> str:
+    return f'''
+struct {struct.name}
+{{
+'''
 
 
-def struct_end(struct: ClangStruct):
-    pass
+def struct_end(struct: ClangStruct) -> str:
+    return f'''
+}}
+'''
 
 
-def generate(dst: pathlib.Path, kit_name: str, headers: Dict[str, ClangHeader]) -> None:
-    root = dst / 'windowskits' / f'build_{kit_name.replace(".", "_")}'
+def generate(source: pathlib.Path, kit_name: str, headers: Dict[str, ClangHeader]) -> None:
+    package_name = f'build_{kit_name.replace(".", "_")}'
+    root = source / 'windowskits' / package_name
     root.mkdir(parents=True, exist_ok=True)
 
-    for k, v in headers.items():
-        dst = root / f'{pathlib.Path(k).stem}.d'
-        print(dst)
+    package = root / 'package.d'
+    with package.open('w') as p:
+        p.write(f'module windowskits.{package_name};\n\n')
 
-        with dst.open('w') as s:
+        for k, v in headers.items():
+            name = pathlib.Path(k).stem
+            p.write(f'public import {name};\n')
 
-            s.write(HEAD)
+            dst = root / f'{name}.d'
+            print(dst)
 
-            # struct
-            for x in v.struct_list:
-                struct_begin(x)
-                struct_end(x)
+            with dst.open('w') as d:
 
-            # interface
-            for i in v.interface_list:
-                s.write(str(i)
-                        .replace('&', '*')
-                        .replace('*const *', '**')
-                        )
-            s.write("\n")
+                d.write(HEAD)
 
-            # function
-            for f in v.function_list:
-                s.write(str(f)
-                        .replace('&', '*')
-                        )
+                # struct
+                for x in v.struct_list:
+                    d.write(struct_begin(x))
+                    d.write(struct_end(x))
 
-            s.write(TAIL)
+                # interface
+                for i in v.interface_list:
+                    d.write(str(i)
+                            .replace('&', '*')
+                            .replace('*const *', '**')
+                            )
+                d.write("\n")
+
+                # function
+                for f in v.function_list:
+                    d.write(str(f)
+                            .replace('&', '*')
+                            )
+
+                d.write(TAIL)
