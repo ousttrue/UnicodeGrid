@@ -7,10 +7,24 @@ from typing import List, Optional, Dict, Tuple
 from clang import cindex
 
 
+def to_d(src: str) -> str:
+    dst = (src
+           .replace('&', '*')
+           .replace('*const *', '**')
+           )
+
+    if src[0] == 'I':
+        # is interface
+        dst = dst.replace('**', '*')
+
+    return dst
+
+
 class ClangNamedType:
     def __init__(self, name, t) -> None:
         self.name = name
         self.type = t
+        self.type_d = to_d(t)
 
     def __str__(self) -> str:
         return f'{self.type} {self.name}'

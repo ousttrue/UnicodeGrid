@@ -58,17 +58,14 @@ interface {{ i.name }}: {{ i.base }} {
 {%- for m in i.methods %}
     {{ m.result }} {{ m.name }}(
     {%- for arg in m.args -%}
-        {% if not loop.first %}, {% endif %}{{ arg.type }} {{ arg.name }}
+        {% if not loop.first %}, {% endif %}{{ arg.type_d }} {{ arg.name }}
     {%- endfor -%}
     );
 {%- endfor %}
 }
 {% endfor %}''')
 
-    s.write(template.render(interface_list=values)
-            .replace('&', '*')
-            .replace('*const *', '**')
-            )
+    s.write(template.render(interface_list=values))
 
 
 def function(s: IO[Any], values: List[ClangMethod]) -> None:
