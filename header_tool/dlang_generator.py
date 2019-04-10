@@ -20,6 +20,26 @@ TAIL = '''
 }
 '''
 
+D3D11_SNIPPET = '''
+// union workaround
+struct D3D11_AUTHENTICATED_PROTECTION_FLAGS
+{
+    UINT Value;
+}
+
+'''
+
+D2D1_SNIPPET = '''
+alias D2D_COLOR_F = D3DCOLORVALUE;
+
+enum D2DERR_RECREATE_TARGET = 0x8899000CL;
+'''
+
+snippet_map = {
+    'd3d11': D3D11_SNIPPET,
+    'd2d1': D2D1_SNIPPET,
+}
+
 
 def typedef(s: IO[Any], values: List[Tuple[str, str]]) -> None:
     for v in values:
@@ -54,7 +74,9 @@ struct {{ struct.name }} {
 def interface(s: IO[Any], values: List[ClangInterface], iid_map: Dict[str, str]) -> None:
 
     for x in values:
-        if x.name in iid_map:
+        if x.guid:
+            x.guid = f'static immutable uuidof = GUID({x.guid});'
+        elif x.name in iid_map:
             x.guid = f'static immutable uuidof = GUID({iid_map.get(x.name)});'
 
     template = Template('''{% for i in interface_list %}
@@ -89,7 +111,7 @@ def function(s: IO[Any], values: List[ClangMethod]) -> None:
 
 def const(s: IO[Any], values: List[Tuple[str, str]]) -> None:
     template = Template('''{% for c in const_list -%}
-immutable {{ c[0] }} = {{ c[1] }};
+enum {{ c[0] }} = {{ c[1] }};
 {% endfor %}''')
 
     s.write(template.render(const_list=values))
@@ -106,6 +128,9 @@ def generate(source: pathlib.Path, kit_name: str, headers: Dict[str, ClangHeader
         dst = root / f'{module_name}.d'
         print(dst)
 
+        if k == 'd2d1.h':
+            v.include_list.append('dxgitype.h')
+
         with dst.open('w') as d:
             d.write('// this is generated\n')
             d.write(f'module windowskits.{package_name}.{module_name};\n')
@@ -120,15 +145,9 @@ def generate(source: pathlib.Path, kit_name: str, headers: Dict[str, ClangHeader
 
             d.write(HEAD)
 
-            if module_name == 'd3d11':
-                d.write('''
-// union workaround
-struct D3D11_AUTHENTICATED_PROTECTION_FLAGS
-{
-    UINT Value;
-}
-
-''')
+            snippet = snippet_map.get(module_name)
+            if snippet:
+                d.write(snippet)
 
             # alias
             typedef(d, v.typedef_list)

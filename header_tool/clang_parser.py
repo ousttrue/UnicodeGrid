@@ -72,27 +72,39 @@ class ClangInterface:
             return None
         base = 'IUnknown'
         methods: List[ClangMethod] = []
+        iid = ''
+
+        if name == 'ID2D1Factory':
+            a = 0
 
         for x in cursor.get_children():
             if x.kind == cindex.CursorKind.CXX_BASE_SPECIFIER:
                 ref = next(y for y in x.get_children()
                            if y.kind == cindex.CursorKind.TYPE_REF)
                 base = ref.spelling
+                if base.startswith('struct '):
+                    base = base[7:]
             elif x.kind == cindex.CursorKind.CXX_METHOD:
-                methods.append(ClangMethod(x))
+                if not any(y for y in methods if y.name == x.spelling):
+                    methods.append(ClangMethod(x))
             elif x.kind == cindex.CursorKind.CXX_ACCESS_SPEC_DECL:
                 pass
+            elif x.kind == cindex.CursorKind.UNEXPOSED_ATTR:
+                try:
+                    iid = extract(x).split('"')[1].strip().split('-')
+                    iid = f'0x{iid[0]}, 0x{iid[1]}, 0x{iid[2]}, [0x{iid[3][0:2]}, 0x{iid[3][2:4]}, 0x{iid[4][0:2]}, 0x{iid[4][2:4]}, 0x{iid[4][4:6]}, 0x{iid[4][6:8]}, 0x{iid[4][8:10]}, 0x{iid[4][10:12]}]'
+                except:
+                    pass
             else:
                 print(x.kind)
 
-        return ClangInterface(name, base, methods)
+        return ClangInterface(name, base, methods, iid)
 
-    def __init__(self, name: str, base: str, methods: List[ClangMethod]) -> None:
+    def __init__(self, name: str, base: str, methods: List[ClangMethod], iid: str) -> None:
         self.name = name
         self.base = base
         self.methods = methods
-        self.guid = ""
-        # self.guid = f'0x{b[0:8]}, 0x{b[8:12]}, 0x{b[12:16]}, [0x{b[16:18]}, 0x{b[18:20]}, 0x{b[20:22]}, 0x{b[22:24]}, 0x{b[24:26]}, 0x{b[26:28]}, 0x{b[28:30]}, 0x{b[30:32]}]'
+        self.guid = iid
 
 
 class ClangStruct:
@@ -138,12 +150,9 @@ class ClangHeader:
             self.interface_list[index] = interface
 
 
-def parse(dll: pathlib.Path, path: pathlib.Path, include_headers: List[str]) -> Dict[str, ClangHeader]:
+def parse(dll: pathlib.Path, include_headers: List[str], *args) -> Dict[str, ClangHeader]:
     cindex.Config.set_library_file(str(dll))
     index = cindex.Index.create()
-    translation_unit = index.parse(str(path),
-                                   ['-x', 'c++'],
-                                   options=cindex.TranslationUnit.PARSE_DETAILED_PROCESSING_RECORD)
 
     headers: Dict[str, ClangHeader] = {}
 
@@ -151,7 +160,7 @@ def parse(dll: pathlib.Path, path: pathlib.Path, include_headers: List[str]) -> 
         header = headers.get(location.name)
         if not header:
             header = ClangHeader()
-            headers[location.name] = header
+            headers[location.name.lower()] = header
         return header
 
     skip_files: List[str] = []
@@ -159,7 +168,7 @@ def parse(dll: pathlib.Path, path: pathlib.Path, include_headers: List[str]) -> 
     def header_from_cursor(cursor: cindex.Cursor) -> Optional[ClangHeader]:
         if not cursor.location.file:
             return None
-        file = pathlib.Path(cursor.location.file.name).name
+        file = pathlib.Path(cursor.location.file.name).name.lower()
         if file not in include_headers:
             if file not in skip_files:
                 skip_files.append(file)
@@ -185,6 +194,8 @@ def parse(dll: pathlib.Path, path: pathlib.Path, include_headers: List[str]) -> 
                 return
             dst = cursor.spelling.strip()
             if not dst:
+                return
+            if any(x for x in header.typedef_list if x[1] == dst):
                 return
             if dst.startswith('PFN_'):
                 header.typedef_list.append(('void*', dst))
@@ -231,13 +242,16 @@ def parse(dll: pathlib.Path, path: pathlib.Path, include_headers: List[str]) -> 
             if header:
                 ext = extract(cursor)
                 splited = ext.split()
-                if splited[0].startswith('IID_'):
-                    return
-                if splited[0] == 'INTERFACE':
-                    return
-                if len(splited) > 1 and '(' not in splited[0]:
-                    header.const_list.append(
-                        (splited[0], ext[len(splited[0]):].strip()))
+                if len(splited) > 1:
+                    if splited[0].startswith('IID_'):
+                        return
+                    if splited[0] == 'INTERFACE':
+                        return
+                    kv = (splited[0], ext[len(splited[0]):].strip())
+                    if '(' not in kv[0] and not kv[1][0].isalpha():
+                        if not any(x for x in header.const_list if x[0] == kv[0]):
+                            header.const_list.append(kv)
+
             return
 
         if cursor.kind == cindex.CursorKind.VAR_DECL:
@@ -265,16 +279,24 @@ def parse(dll: pathlib.Path, path: pathlib.Path, include_headers: List[str]) -> 
             elif cursor.spelling == "DECLARE_INTERFACE":
                 for child in cursor.get_children():
                     traverse(child, level+1)
+            elif cursor.spelling == "DX_DECLARE_INTERFACE":
+                for child in cursor.get_children():
+                    traverse(child, level+1)
             return
 
         if cursor.kind == cindex.CursorKind.INCLUSION_DIRECTIVE:
             if header:
-                header.include_list.append(cursor.spelling)
+                header.include_list.append(cursor.spelling.lower())
             return
 
         print_cursor(cursor, level)
         return
 
-    for child in translation_unit.cursor.get_children():
-        traverse(child)
+    for path in args:
+        translation_unit = index.parse(str(path),
+                                       ['-x', 'c++'],
+                                       options=cindex.TranslationUnit.PARSE_DETAILED_PROCESSING_RECORD)
+
+        for child in translation_unit.cursor.get_children():
+            traverse(child)
     return headers
