@@ -1,0 +1,14 @@
+.dub
+docs.json
+__dummy.html
+docs/
+windowskits_d2d1.so
+windowskits_d2d1.dylib
+windowskits_d2d1.dll
+windowskits_d2d1.a
+windowskits_d2d1.lib
+windowskits_d2d1-test-*
+*.exe
+*.o
+*.obj
+*.lst

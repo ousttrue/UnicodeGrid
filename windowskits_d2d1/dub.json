@@ -1,0 +1,16 @@
+{
+	"name": "windowskits_d2d1",
+	"authors": [
+		"ousttrue"
+	],
+	"description": "A minimal D application.",
+	"copyright": "Copyright © 2019, ousttrue",
+	"license": "MIT",
+	"dependencies": {
+		"windowskits": {
+			"version": "_master",
+			"path": "../windowskits"
+		}
+	},
+	"libs": ["user32", "gdi32", "d2d1"]
+}
