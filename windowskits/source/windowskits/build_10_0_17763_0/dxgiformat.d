@@ -1,5 +1,6 @@
-module windowskits.build_10_0_17763_0.dxgiformat;
 // this is generated
+module windowskits.build_10_0_17763_0.dxgiformat;
+
 import core.sys.windows.windef;
 import core.sys.windows.com;
 

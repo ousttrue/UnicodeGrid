@@ -1,5 +1,6 @@
-module windowskits.build_10_0_17763_0.dxgi;
 // this is generated
+module windowskits.build_10_0_17763_0.dxgi;
+
 import core.sys.windows.windef;
 import core.sys.windows.com;
 public import windowskits.build_10_0_17763_0.dxgicommon;
@@ -206,15 +207,15 @@ interface IDXGIOutput: IDXGIObject {
     static immutable uuidof = GUID(0xae02eedb, 0xc735, 0x4690, [0x8d, 0x52, 0x5a, 0x8d, 0xc2, 0x02, 0x13, 0xaa]);
     HRESULT GetDesc(DXGI_OUTPUT_DESC * pDesc);
     HRESULT GetDisplayModeList(DXGI_FORMAT EnumFormat, UINT Flags, UINT * pNumModes, DXGI_MODE_DESC * pDesc);
-    HRESULT FindClosestMatchingMode(const DXGI_MODE_DESC * pModeToMatch, DXGI_MODE_DESC * pClosestMatch, IUnknown * pConcernedDevice);
+    HRESULT FindClosestMatchingMode(const DXGI_MODE_DESC * pModeToMatch, DXGI_MODE_DESC * pClosestMatch, IUnknown  pConcernedDevice);
     HRESULT WaitForVBlank();
-    HRESULT TakeOwnership(IUnknown * pDevice, BOOL Exclusive);
+    HRESULT TakeOwnership(IUnknown  pDevice, BOOL Exclusive);
     void ReleaseOwnership();
     HRESULT GetGammaControlCapabilities(DXGI_GAMMA_CONTROL_CAPABILITIES * pGammaCaps);
     HRESULT SetGammaControl(const DXGI_GAMMA_CONTROL * pArray);
     HRESULT GetGammaControl(DXGI_GAMMA_CONTROL * pArray);
-    HRESULT SetDisplaySurface(IDXGISurface * pScanoutSurface);
-    HRESULT GetDisplaySurfaceData(IDXGISurface * pDestination);
+    HRESULT SetDisplaySurface(IDXGISurface  pScanoutSurface);
+    HRESULT GetDisplaySurfaceData(IDXGISurface  pDestination);
     HRESULT GetFrameStatistics(DXGI_FRAME_STATISTICS * pStats);
 }
 
@@ -222,7 +223,7 @@ interface IDXGISwapChain: IDXGIDeviceSubObject {
     static immutable uuidof = GUID(0x310d36a0, 0xd2e7, 0x4c0a, [0xaa, 0x04, 0x6a, 0x9d, 0x23, 0xb8, 0x88, 0x6a]);
     HRESULT Present(UINT SyncInterval, UINT Flags);
     HRESULT GetBuffer(UINT Buffer, const IID * riid, void ** ppSurface);
-    HRESULT SetFullscreenState(BOOL Fullscreen, IDXGIOutput * pTarget);
+    HRESULT SetFullscreenState(BOOL Fullscreen, IDXGIOutput  pTarget);
     HRESULT GetFullscreenState(BOOL * pFullscreen, IDXGIOutput * ppTarget);
     HRESULT GetDesc(DXGI_SWAP_CHAIN_DESC * pDesc);
     HRESULT ResizeBuffers(UINT BufferCount, UINT Width, UINT Height, DXGI_FORMAT NewFormat, UINT SwapChainFlags);
@@ -237,7 +238,7 @@ interface IDXGIFactory: IDXGIObject {
     HRESULT EnumAdapters(UINT Adapter, IDXGIAdapter * ppAdapter);
     HRESULT MakeWindowAssociation(HWND WindowHandle, UINT Flags);
     HRESULT GetWindowAssociation(HWND * pWindowHandle);
-    HRESULT CreateSwapChain(IUnknown * pDevice, DXGI_SWAP_CHAIN_DESC * pDesc, IDXGISwapChain * ppSwapChain);
+    HRESULT CreateSwapChain(IUnknown  pDevice, DXGI_SWAP_CHAIN_DESC * pDesc, IDXGISwapChain * ppSwapChain);
     HRESULT CreateSoftwareAdapter(HMODULE Module, IDXGIAdapter * ppAdapter);
 }
 
@@ -247,7 +248,7 @@ interface IDXGIDevice: IDXGIObject {
     HRESULT CreateSurface(const DXGI_SURFACE_DESC * pDesc, UINT NumSurfaces, DXGI_USAGE Usage, const DXGI_SHARED_RESOURCE * pSharedResource, IDXGISurface * ppSurface);
     HRESULT QueryResourceResidency(IUnknown * ppResources, DXGI_RESIDENCY * pResidencyStatus, UINT NumResources);
     HRESULT SetGPUThreadPriority(INT Priority);
-    HRESULT GetGPUThreadPriority(INT * pPriority);
+    HRESULT GetGPUThreadPriority(INT  pPriority);
 }
 
 interface IDXGIFactory1: IDXGIFactory {

@@ -1,7 +1,7 @@
 import pathlib
 from typing import Dict, List, Tuple, IO, Any
-from clang_parser import ClangHeader, ClangStruct, ClangEnum, ClangInterface, ClangMethod
 from jinja2 import Template
+from clang_parser import ClangHeader, ClangStruct, ClangEnum, ClangInterface, ClangMethod
 
 
 IMPORT = '''
@@ -121,12 +121,13 @@ def generate(source: pathlib.Path, kit_name: str, headers: Dict[str, ClangHeader
             d.write(HEAD)
 
             if module_name == 'd3d11':
-                # union ...
                 d.write('''
-    struct D3D11_AUTHENTICATED_PROTECTION_FLAGS
-    {
-        UINT Value;
-    }
+// union workaround
+struct D3D11_AUTHENTICATED_PROTECTION_FLAGS
+{
+    UINT Value;
+}
+
 ''')
 
             # alias
