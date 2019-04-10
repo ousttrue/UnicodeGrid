@@ -197,7 +197,7 @@ interface IDXGISurface1: IDXGISurface {
 
 interface IDXGIAdapter: IDXGIObject {
     static immutable uuidof = GUID(0x2411e7e1, 0x12ac, 0x4ccf, [0xbd, 0x14, 0x97, 0x98, 0xe8, 0x53, 0x4d, 0xc0]);
-    HRESULT EnumOutputs(UINT Output, IDXGIOutput ** ppOutput);
+    HRESULT EnumOutputs(UINT Output, IDXGIOutput * ppOutput);
     HRESULT GetDesc(DXGI_ADAPTER_DESC * pDesc);
     HRESULT CheckInterfaceSupport(const GUID * InterfaceName, LARGE_INTEGER * pUMDVersion);
 }
@@ -223,36 +223,36 @@ interface IDXGISwapChain: IDXGIDeviceSubObject {
     HRESULT Present(UINT SyncInterval, UINT Flags);
     HRESULT GetBuffer(UINT Buffer, const IID * riid, void ** ppSurface);
     HRESULT SetFullscreenState(BOOL Fullscreen, IDXGIOutput * pTarget);
-    HRESULT GetFullscreenState(BOOL * pFullscreen, IDXGIOutput ** ppTarget);
+    HRESULT GetFullscreenState(BOOL * pFullscreen, IDXGIOutput * ppTarget);
     HRESULT GetDesc(DXGI_SWAP_CHAIN_DESC * pDesc);
     HRESULT ResizeBuffers(UINT BufferCount, UINT Width, UINT Height, DXGI_FORMAT NewFormat, UINT SwapChainFlags);
     HRESULT ResizeTarget(const DXGI_MODE_DESC * pNewTargetParameters);
-    HRESULT GetContainingOutput(IDXGIOutput ** ppOutput);
+    HRESULT GetContainingOutput(IDXGIOutput * ppOutput);
     HRESULT GetFrameStatistics(DXGI_FRAME_STATISTICS * pStats);
     HRESULT GetLastPresentCount(UINT * pLastPresentCount);
 }
 
 interface IDXGIFactory: IDXGIObject {
     static immutable uuidof = GUID(0x7b7166ec, 0x21c7, 0x44ae, [0xb2, 0x1a, 0xc9, 0xae, 0x32, 0x1a, 0xe3, 0x69]);
-    HRESULT EnumAdapters(UINT Adapter, IDXGIAdapter ** ppAdapter);
+    HRESULT EnumAdapters(UINT Adapter, IDXGIAdapter * ppAdapter);
     HRESULT MakeWindowAssociation(HWND WindowHandle, UINT Flags);
     HRESULT GetWindowAssociation(HWND * pWindowHandle);
-    HRESULT CreateSwapChain(IUnknown * pDevice, DXGI_SWAP_CHAIN_DESC * pDesc, IDXGISwapChain ** ppSwapChain);
-    HRESULT CreateSoftwareAdapter(HMODULE Module, IDXGIAdapter ** ppAdapter);
+    HRESULT CreateSwapChain(IUnknown * pDevice, DXGI_SWAP_CHAIN_DESC * pDesc, IDXGISwapChain * ppSwapChain);
+    HRESULT CreateSoftwareAdapter(HMODULE Module, IDXGIAdapter * ppAdapter);
 }
 
 interface IDXGIDevice: IDXGIObject {
     static immutable uuidof = GUID(0x54ec77fa, 0x1377, 0x44e6, [0x8c, 0x32, 0x88, 0xfd, 0x5f, 0x44, 0xc8, 0x4c]);
-    HRESULT GetAdapter(IDXGIAdapter ** pAdapter);
-    HRESULT CreateSurface(const DXGI_SURFACE_DESC * pDesc, UINT NumSurfaces, DXGI_USAGE Usage, const DXGI_SHARED_RESOURCE * pSharedResource, IDXGISurface ** ppSurface);
-    HRESULT QueryResourceResidency(IUnknown ** ppResources, DXGI_RESIDENCY * pResidencyStatus, UINT NumResources);
+    HRESULT GetAdapter(IDXGIAdapter * pAdapter);
+    HRESULT CreateSurface(const DXGI_SURFACE_DESC * pDesc, UINT NumSurfaces, DXGI_USAGE Usage, const DXGI_SHARED_RESOURCE * pSharedResource, IDXGISurface * ppSurface);
+    HRESULT QueryResourceResidency(IUnknown * ppResources, DXGI_RESIDENCY * pResidencyStatus, UINT NumResources);
     HRESULT SetGPUThreadPriority(INT Priority);
     HRESULT GetGPUThreadPriority(INT * pPriority);
 }
 
 interface IDXGIFactory1: IDXGIFactory {
     static immutable uuidof = GUID(0x770aae78, 0xf26f, 0x4dba, [0xa8, 0x29, 0x25, 0x3c, 0x83, 0xd1, 0xb3, 0x87]);
-    HRESULT EnumAdapters1(UINT Adapter, IDXGIAdapter1 ** ppAdapter);
+    HRESULT EnumAdapters1(UINT Adapter, IDXGIAdapter1 * ppAdapter);
     BOOL IsCurrent();
 }
 
