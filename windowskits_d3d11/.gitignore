@@ -1,0 +1,14 @@
+.dub
+docs.json
+__dummy.html
+docs/
+windowskits_d3d11.so
+windowskits_d3d11.dylib
+windowskits_d3d11.dll
+windowskits_d3d11.a
+windowskits_d3d11.lib
+windowskits_d3d11-test-*
+*.exe
+*.o
+*.obj
+*.lst
