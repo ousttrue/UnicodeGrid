@@ -126,9 +126,9 @@ extern (Windows) int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 		TranslateMessage(&msg);
 		DispatchMessage(&msg);
 
-		// get backbuffer
 		if (pRenderTargetView.ptr is null)
 		{
+			// get backbuffer
 			ComPtr!ID3D11Texture2D pBackBuffer;
 			if (pSwapChain.GetBuffer(0, &ID3D11Texture2D.uuidof,
 					cast(void**)&pBackBuffer.ptr) != 0)
@@ -136,6 +136,7 @@ extern (Windows) int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 				return 4;
 			}
 
+			// create RTV
 			if (pDevice.CreateRenderTargetView(pBackBuffer.ptr, null, &pRenderTargetView.ptr) != 0)
 			{
 				return 5;
