@@ -7,7 +7,7 @@ import core.sys.windows.com;
 extern(Windows){
 
 alias IID = GUID;
-immutable DXGI_FORMAT_DEFINED = 1;
+enum DXGI_FORMAT_DEFINED = 1;
 
 enum DXGI_FORMAT {
     DXGI_FORMAT_UNKNOWN = 0,

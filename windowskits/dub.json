@@ -5,6 +5,6 @@
 	],
 	"description": "A minimal D application.",
 	"copyright": "Copyright © 2019, ousttrue",
-	"license": "proprietary",
+	"license": "MIT",
 	"targetType": "library"
 }
