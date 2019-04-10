@@ -4,7 +4,7 @@ from clang_parser import ClangHeader, ClangStruct, ClangEnum, ClangInterface, Cl
 from jinja2 import Template
 
 
-IMPORT = '''// this is generated
+IMPORT = '''
 import core.sys.windows.windef;
 import core.sys.windows.com;
 '''
@@ -51,10 +51,15 @@ struct {{ struct.name }} {
     s.write(template.render(struct_list=values))
 
 
-def interface(s: IO[Any], values: List[ClangInterface]) -> None:
+def interface(s: IO[Any], values: List[ClangInterface], iid_map: Dict[str, str]) -> None:
+
+    for x in values:
+        if x.name in iid_map:
+            x.guid = f'static immutable uuidof = GUID({iid_map.get(x.name)});'
+
     template = Template('''{% for i in interface_list %}
 interface {{ i.name }}: {{ i.base }} {
-    static immutable uuidof = GUID({{ i.guid }});
+    {{ i.guid }}
 {%- for m in i.methods %}
     {{ m.result }} {{ m.name }}(
     {%- for arg in m.args -%}
@@ -72,7 +77,7 @@ def function(s: IO[Any], values: List[ClangMethod]) -> None:
     template = Template('''{% for f in function_list %}
 {{ f.result }} {{ f.name }}(
     {%- for arg in f.args -%}
-        {% if not loop.first %}, {% endif %}{{ arg.type }} {{ arg.name }}
+        {% if not loop.first %}, {% endif %}{{ arg.type_d }} {{ arg.name }}
     {%- endfor -%}
 );
 {% endfor %}''')
@@ -102,6 +107,7 @@ def generate(source: pathlib.Path, kit_name: str, headers: Dict[str, ClangHeader
         print(dst)
 
         with dst.open('w') as d:
+            d.write('// this is generated\n')
             d.write(f'module windowskits.{package_name}.{module_name};\n')
 
             d.write(IMPORT)
@@ -113,6 +119,15 @@ def generate(source: pathlib.Path, kit_name: str, headers: Dict[str, ClangHeader
                         f'public import windowskits.{package_name}.{pathlib.Path(kk).stem};\n')
 
             d.write(HEAD)
+
+            if module_name == 'd3d11':
+                # union ...
+                d.write('''
+    struct D3D11_AUTHENTICATED_PROTECTION_FLAGS
+    {
+        UINT Value;
+    }
+''')
 
             # alias
             typedef(d, v.typedef_list)
@@ -127,7 +142,7 @@ def generate(source: pathlib.Path, kit_name: str, headers: Dict[str, ClangHeader
             struct(d, v.struct_list)
 
             # interface
-            interface(d, v.interface_list)
+            interface(d, v.interface_list, v.iid_map)
 
             # function
             function(d, v.function_list)

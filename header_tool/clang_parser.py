@@ -3,6 +3,7 @@ require
 > pip insall clang
 '''
 import pathlib
+import re
 from typing import List, Optional, Dict, Tuple
 from clang import cindex
 
@@ -15,7 +16,9 @@ def to_d(src: str) -> str:
 
     if src[0] == 'I':
         # is interface
-        dst = dst.replace('**', '*')
+        def repl(m):
+            return m[0][1:]
+        dst = re.sub(r'\*+', repl, dst)
 
     return dst
 
@@ -45,11 +48,20 @@ class ClangMethod:
         return f'{self.result} {self.name}({", ".join(str(m) for m in self.args)});\n'
 
 
+def get_token(node):
+
+    tokens = list(node.get_tokens())
+    result = [x.spelling for x in tokens]
+
+    return ','.join(result)
+
+
 def extract(x: cindex.Cursor) -> str:
     start = x.extent.start
     end = x.extent.end
     text = pathlib.Path(start.file.name).read_bytes()
-    return text[start.offset:end.offset].decode('ascii')
+    text = text[start.offset:end.offset]
+    return text.decode('ascii')
 
 
 class ClangInterface:
@@ -58,9 +70,8 @@ class ClangInterface:
         name = cursor.spelling
         if name[0] != 'I':
             return None
-        base = None
+        base = 'IUnknown'
         methods: List[ClangMethod] = []
-        iid = None
 
         for x in cursor.get_children():
             if x.kind == cindex.CursorKind.CXX_BASE_SPECIFIER:
@@ -69,25 +80,19 @@ class ClangInterface:
                 base = ref.spelling
             elif x.kind == cindex.CursorKind.CXX_METHOD:
                 methods.append(ClangMethod(x))
-            elif x.kind == cindex.CursorKind.UNEXPOSED_ATTR:
-                iid = extract(x).split('"')[1].replace('-', '')
             elif x.kind == cindex.CursorKind.CXX_ACCESS_SPEC_DECL:
                 pass
             else:
                 print(x.kind)
 
-        if not iid:
-            return None
-        if not base:
-            return None
+        return ClangInterface(name, base, methods)
 
-        return ClangInterface(iid, name, base, methods)
-
-    def __init__(self, b: str, name: str, base: str, methods: List[ClangMethod]) -> None:
+    def __init__(self, name: str, base: str, methods: List[ClangMethod]) -> None:
         self.name = name
         self.base = base
         self.methods = methods
-        self.guid = f'0x{b[0:8]}, 0x{b[8:12]}, 0x{b[12:16]}, [0x{b[16:18]}, 0x{b[18:20]}, 0x{b[20:22]}, 0x{b[22:24]}, 0x{b[24:26]}, 0x{b[26:28]}, 0x{b[28:30]}, 0x{b[30:32]}]'
+        self.guid = ""
+        # self.guid = f'0x{b[0:8]}, 0x{b[8:12]}, 0x{b[12:16]}, [0x{b[16:18]}, 0x{b[18:20]}, 0x{b[20:22]}, 0x{b[22:24]}, 0x{b[24:26]}, 0x{b[26:28]}, 0x{b[28:30]}, 0x{b[30:32]}]'
 
 
 class ClangStruct:
@@ -117,6 +122,20 @@ class ClangHeader:
         self.enum_list: List[ClangEnum] = []
         self.const_list: List[Tuple[str, str]] = []
         self.include_list: List[str] = []
+        self.iid_map: Dict[str, str] = {}
+
+    def add_interface(self, interface: ClangInterface) -> None:
+        def get_index() -> Optional[int]:
+            for i, x in enumerate(self.interface_list):
+                if x.name == interface.name:
+                    return i
+        index = get_index()
+        if index == None:
+            self.interface_list.append(interface)
+            return
+
+        if len(interface.methods) > len(self.interface_list[index].methods):
+            self.interface_list[index] = interface
 
 
 def parse(dll: pathlib.Path, path: pathlib.Path, include_headers: List[str]) -> Dict[str, ClangHeader]:
@@ -135,11 +154,16 @@ def parse(dll: pathlib.Path, path: pathlib.Path, include_headers: List[str]) -> 
             headers[location.name] = header
         return header
 
+    skip_files: List[str] = []
+
     def header_from_cursor(cursor: cindex.Cursor) -> Optional[ClangHeader]:
         if not cursor.location.file:
             return None
         file = pathlib.Path(cursor.location.file.name).name
         if file not in include_headers:
+            if file not in skip_files:
+                skip_files.append(file)
+                print(file)
             return None
 
         return get_or_create_header(
@@ -150,8 +174,6 @@ def parse(dll: pathlib.Path, path: pathlib.Path, include_headers: List[str]) -> 
 
     def traverse(cursor: cindex.Cursor, level=0) -> None:
         header = header_from_cursor(cursor)
-        if not header:
-            return
 
         if cursor.kind == cindex.CursorKind.UNEXPOSED_DECL:
             for child in cursor.get_children():
@@ -159,14 +181,22 @@ def parse(dll: pathlib.Path, path: pathlib.Path, include_headers: List[str]) -> 
             return
 
         if cursor.kind == cindex.CursorKind.TYPEDEF_DECL:
-            if cursor.spelling[0] != 'I':
+            if not header:
+                return
+            dst = cursor.spelling.strip()
+            if not dst:
+                return
+            if dst.startswith('PFN_'):
+                header.typedef_list.append(('void*', dst))
+            else:
                 for x in cursor.get_children():
-                    traverse(x)
-                    if header:
-                        src = x.spelling
-                        dst = cursor.spelling
-                        if src != dst:
-                            header.typedef_list.append((src, dst))
+                    src = x.spelling.strip()
+                    if src.startswith('struct '):
+                        src = src[7:]
+                    if not src:
+                        continue
+                    if src != dst:
+                        header.typedef_list.append((src, dst))
             return
 
         if cursor.kind == cindex.CursorKind.STRUCT_DECL:
@@ -179,15 +209,16 @@ def parse(dll: pathlib.Path, path: pathlib.Path, include_headers: List[str]) -> 
                     # interface
                     i = ClangInterface.create(cursor)
                     if i:
-                        header.interface_list.append(i)
+                        header.add_interface(i)
                     else:
-                        #print_cursor(cursor, level)
+                        # print_cursor(cursor, level)
                         pass
             return
 
         if cursor.kind == cindex.CursorKind.FUNCTION_DECL:
             if header:
-                header.function_list.append(ClangMethod(cursor))
+                if "operator" not in cursor.spelling:
+                    header.function_list.append(ClangMethod(cursor))
             return
 
         if cursor.kind == cindex.CursorKind.ENUM_DECL:
@@ -200,6 +231,10 @@ def parse(dll: pathlib.Path, path: pathlib.Path, include_headers: List[str]) -> 
             if header:
                 ext = extract(cursor)
                 splited = ext.split()
+                if splited[0].startswith('IID_'):
+                    return
+                if splited[0] == 'INTERFACE':
+                    return
                 if len(splited) > 1 and '(' not in splited[0]:
                     header.const_list.append(
                         (splited[0], ext[len(splited[0]):].strip()))
@@ -218,6 +253,18 @@ def parse(dll: pathlib.Path, path: pathlib.Path, include_headers: List[str]) -> 
             return
 
         if cursor.kind == cindex.CursorKind.MACRO_INSTANTIATION:
+            if cursor.spelling == "DEFINE_GUID":
+                if header:
+                    ex = extract(cursor)
+                    begin = ex.index('(') + 1
+                    end = ex.index(')')
+                    b = ex[begin:end].split(',')
+                    if b[0].startswith("IID_"):
+                        header.iid_map[b[0][4:]
+                                       ] = f'{b[1]}, {b[2]}, {b[3]}, [{b[4]}, {b[5]}, {b[6]}, {b[7]}, {b[8]}, {b[9]}, {b[10]}, {b[11]}]'
+            elif cursor.spelling == "DECLARE_INTERFACE":
+                for child in cursor.get_children():
+                    traverse(child, level+1)
             return
 
         if cursor.kind == cindex.CursorKind.INCLUSION_DIRECTIVE:

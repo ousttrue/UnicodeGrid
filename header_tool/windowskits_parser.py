@@ -8,8 +8,10 @@ WINDOWS_KITS_INCLUDE_DIR = pathlib.Path(
 
 
 include_headers = [
-    # 'd3d11.h',
-    # 'd3dcommon.h',
+    # 'd3d10_1.h',
+    'd3d10.h',
+    'd3d11.h',
+    'd3dcommon.h',
     'dxgi.h',
     'dxgicommon.h',
     'dxgiformat.h',
