@@ -4,10 +4,18 @@
     // 詳細情報は次を確認してください: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [{
-        "name": "Python",
-        "type": "python",
-        "request": "launch",
-        "program": "${workspaceFolder}/parser.py",
-        "console": "integratedTerminal"
-    }, ]
+            "name": "Python",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/parser.py",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Sample",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/sample_parser.py",
+            "console": "integratedTerminal"
+        }
+    ]
 }

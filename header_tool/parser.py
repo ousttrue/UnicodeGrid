@@ -1,6 +1,6 @@
 import pathlib
-import windowskits_parser
 import dlang_generator
+import windowskits_parser
 
 HERE = pathlib.Path(__file__).absolute().parent
 

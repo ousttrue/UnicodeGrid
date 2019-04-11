@@ -114,6 +114,10 @@ class ClangStruct:
         for x in cursor.get_children():
             if x.kind == cindex.CursorKind.FIELD_DECL:
                 self.fields.append(ClangNamedType(x.spelling, x.type.spelling))
+                for y in x.get_children():
+                    a = 0
+            else:
+                a = 0
 
 
 class ClangEnum:
@@ -150,7 +154,12 @@ class ClangHeader:
             self.interface_list[index] = interface
 
 
-def parse(dll: pathlib.Path, include_headers: List[str], *args) -> Dict[str, ClangHeader]:
+DEFAULT_DLL = pathlib.Path('C:/Program Files (x86)/LLVM/bin/libclang.dll')
+
+
+def parse(dll: Optional[pathlib.Path], include_headers: List[str], *args) -> Dict[str, ClangHeader]:
+    if not dll:
+        dll = DEFAULT_DLL
     cindex.Config.set_library_file(str(dll))
     index = cindex.Index.create()
 
