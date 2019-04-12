@@ -1,0 +1,3 @@
+[submodule "pycpptool"]
+	path = pycpptool
+	url = https://github.com/ousttrue/pycpptool
