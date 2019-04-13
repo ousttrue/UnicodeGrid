@@ -6,6 +6,7 @@ import pathlib
 import re
 from typing import List, Optional, Dict, Tuple
 from clang import cindex
+import pycpptool
 
 
 def to_d(src: str) -> str:
@@ -157,12 +158,7 @@ class ClangHeader:
 DEFAULT_DLL = pathlib.Path('C:/Program Files (x86)/LLVM/bin/libclang.dll')
 
 
-def parse(dll: Optional[pathlib.Path], include_headers: List[str], *args) -> Dict[str, ClangHeader]:
-    if not dll:
-        dll = DEFAULT_DLL
-    cindex.Config.set_library_file(str(dll))
-    index = cindex.Index.create()
-
+def parse(path: pathlib.Path, *include_headers: List[str]) -> Dict[str, ClangHeader]:
     headers: Dict[str, ClangHeader] = {}
 
     def get_or_create_header(location: pathlib.Path) -> ClangHeader:
@@ -301,11 +297,7 @@ def parse(dll: Optional[pathlib.Path], include_headers: List[str], *args) -> Dic
         print_cursor(cursor, level)
         return
 
-    for path in args:
-        translation_unit = index.parse(str(path),
-                                       ['-x', 'c++'],
-                                       options=cindex.TranslationUnit.PARSE_DETAILED_PROCESSING_RECORD)
-
-        for child in translation_unit.cursor.get_children():
-            traverse(child)
+    tu = pycpptool.get_tu(path)
+    for child in tu.cursor.get_children():
+        traverse(child)
     return headers

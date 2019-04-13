@@ -12,6 +12,7 @@
         "isalpha",
         "llvm",
         "mkdir",
+        "pycpptool",
         "splited",
         "struct",
         "typedef",

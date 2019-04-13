@@ -8,6 +8,9 @@
         "type": "python",
         "request": "launch",
         "program": "${workspaceFolder}/parser.py",
-        "console": "integratedTerminal"
+        "console": "integratedTerminal",
+        "env": {
+            "PYTHONPATH": "${workspaceFolder}/../pycpptool"
+        }
     }]
 }
