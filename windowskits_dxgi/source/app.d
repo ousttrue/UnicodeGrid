@@ -27,7 +27,7 @@ struct ComPtr(T)
 void main()
 {
 	ComPtr!IDXGIFactory pFactory;
-	auto hr = CreateDXGIFactory(&IDXGIFactory.uuidof, cast(void**)&pFactory.ptr);
+	auto hr = CreateDXGIFactory(&IDXGIFactory.iidof, cast(void**)&pFactory.ptr);
 	if (hr != 0)
 	{
 		writeln("fail");
