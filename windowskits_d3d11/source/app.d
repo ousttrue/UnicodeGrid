@@ -84,9 +84,7 @@ extern (Windows) int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 		return 2;
 	}
 
-	D3D_FEATURE_LEVEL[] levels = [
-		D3D_FEATURE_LEVEL.D3D_FEATURE_LEVEL_11_1, D3D_FEATURE_LEVEL.D3D_FEATURE_LEVEL_11_0,
-	];
+	D3D_FEATURE_LEVEL[] levels = [D3D_FEATURE_LEVEL._11_1, D3D_FEATURE_LEVEL._11_0,];
 	ComPtr!ID3D11Device pDevice;
 	D3D_FEATURE_LEVEL level;
 	ComPtr!ID3D11DeviceContext pDeviceContext;
@@ -95,7 +93,7 @@ extern (Windows) int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 	scDesc.BufferCount = 1;
 	scDesc.BufferDesc.Width = 0;
 	scDesc.BufferDesc.Height = 0;
-	scDesc.BufferDesc.Format = DXGI_FORMAT.DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+	scDesc.BufferDesc.Format = DXGI_FORMAT.R8G8B8A8_UNORM_SRGB;
 	scDesc.BufferDesc.RefreshRate.Numerator = 60;
 	scDesc.BufferDesc.RefreshRate.Denominator = 1;
 	scDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
@@ -106,7 +104,7 @@ extern (Windows) int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
 	ComPtr!IDXGISwapChain pSwapChain;
 
-	auto result = D3D11CreateDeviceAndSwapChain(null, D3D_DRIVER_TYPE.D3D_DRIVER_TYPE_HARDWARE, null, 0,
+	auto result = D3D11CreateDeviceAndSwapChain(null, D3D_DRIVER_TYPE.HARDWARE, null, 0,
 			levels.ptr, cast(uint) levels.length, D3D11_SDK_VERSION, &scDesc,
 			&pSwapChain.ptr, &pDevice.ptr, &level, &pDeviceContext.ptr);
 	if (result != 0)
@@ -130,7 +128,7 @@ extern (Windows) int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 		{
 			// get backbuffer
 			ComPtr!ID3D11Texture2D pBackBuffer;
-			if (pSwapChain.GetBuffer(0, &ID3D11Texture2D.uuidof,
+			if (pSwapChain.GetBuffer(0, &ID3D11Texture2D.iidof,
 					cast(void**)&pBackBuffer.ptr) != 0)
 			{
 				return 4;

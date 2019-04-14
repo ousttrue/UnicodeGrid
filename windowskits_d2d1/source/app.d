@@ -1,9 +1,9 @@
 //
 // add d3d11 to libs in dub.json
 //
+import std.stdio;
 import core.runtime;
 import core.sys.windows.windows;
-import windowskits.build_10_0_17763_0.d3d11;
 import windowskits.build_10_0_17763_0.d2d1;
 
 extern (Windows)
@@ -53,6 +53,7 @@ struct DemoApp
 	ComPtr!ID2D1HwndRenderTarget m_pRenderTarget;
 	ComPtr!ID2D1SolidColorBrush m_pLightSlateGrayBrush;
 	ComPtr!ID2D1SolidColorBrush m_pCornflowerBlueBrush;
+	//ComPtr!ID2D1StrokeStyle m_pStrokeStyleCustomOffsetZero;
 
 	// Initialize device-dependent resources.
 	HRESULT CreateDeviceResources(HWND hWnd)
@@ -62,8 +63,8 @@ struct DemoApp
 			//D2D1_FACTORY_OPTIONS options;
 			//options.debugLevel = D2D1_DEBUG_LEVEL_INFORMATION;
 
-			auto hr = D2D1CreateFactory(D2D1_FACTORY_TYPE.D2D1_FACTORY_TYPE_SINGLE_THREADED,
-					&ID2D1Factory.uuidof, null, cast(void**)&m_pDirect2dFactory.ptr);
+			auto hr = D2D1CreateFactory(D2D1_FACTORY_TYPE.SINGLE_THREADED,
+					&ID2D1Factory.iidof, null, cast(void**)&m_pDirect2dFactory.ptr);
 			if (FAILED(hr))
 			{
 				return hr;
@@ -75,12 +76,12 @@ struct DemoApp
 			auto size = D2D1_SIZE_U(rc.right - rc.left, rc.bottom - rc.top);
 
 			auto rtp = D2D1_RENDER_TARGET_PROPERTIES();
-			rtp.usage = D2D1_RENDER_TARGET_USAGE.D2D1_RENDER_TARGET_USAGE_NONE;
-			rtp.minLevel = D2D1_FEATURE_LEVEL.D2D1_FEATURE_LEVEL_DEFAULT;
-			rtp.pixelFormat = D2D1_PIXEL_FORMAT(DXGI_FORMAT.DXGI_FORMAT_UNKNOWN,
-					D2D1_ALPHA_MODE.D2D1_ALPHA_MODE_UNKNOWN);
+			rtp.usage = D2D1_RENDER_TARGET_USAGE.NONE;
+			rtp.minLevel = D2D1_FEATURE_LEVEL.DEFAULT;
+			rtp.pixelFormat = D2D1_PIXEL_FORMAT(DXGI_FORMAT.UNKNOWN, D2D1_ALPHA_MODE.UNKNOWN);
 			rtp.dpiX = 0;
 			rtp.dpiY = 0;
+			//rtp.type = D2D1_RENDER_TARGET_TYPE.D2D1_RENDER_TARGET_TYPE_DEFAULT;
 
 			auto hrtp = D2D1_HWND_RENDER_TARGET_PROPERTIES(hWnd, size);
 
@@ -91,14 +92,17 @@ struct DemoApp
 				return hr;
 			}
 
+			auto identity = D2D_MATRIX_3X2_F();
+
 			// Create a gray brush.
-			auto bp = D2D1_BRUSH_PROPERTIES();
+			auto bp = D2D1_BRUSH_PROPERTIES(1, identity);
 			auto gray = D2D1_COLOR_F(0.5f, 0.5f, 0.5f, 1.0f);
 			hr = m_pRenderTarget.CreateSolidColorBrush(&gray, &bp, &m_pLightSlateGrayBrush.ptr);
 			if (FAILED(hr))
 			{
 				return hr;
 			}
+			writeln("create gray brush");
 
 			// Create a blue brush.
 			auto blue = D2D1_COLOR_F(0, 0, 1.0f, 1.0f);
@@ -107,6 +111,7 @@ struct DemoApp
 			{
 				return hr;
 			}
+			writeln("create blue brush");
 		}
 
 		return S_OK;
@@ -131,33 +136,47 @@ struct DemoApp
 				return hr;
 			}
 
+			//D2D1_SIZE_F rtSize = m_pRenderTarget.GetSize();
+
 			m_pRenderTarget.BeginDraw();
 
 			//m_pRenderTarget.SetTransform(D2D1::Matrix3x2F::Identity());
 
-			auto white = D2D1_COLOR_F(1, 1, 1, 1);
+			/*
+			float[] dashes = [1.0f, 2.0f, 2.0f, 3.0f, 2.0f, 2.0f];
+			auto ssp = D2D1_STROKE_STYLE_PROPERTIES(D2D1_CAP_STYLE.D2D1_CAP_STYLE_FLAT,
+					D2D1_CAP_STYLE.D2D1_CAP_STYLE_FLAT,
+					D2D1_CAP_STYLE.D2D1_CAP_STYLE_ROUND,
+					D2D1_LINE_JOIN.D2D1_LINE_JOIN_MITER, 10.0f,
+					D2D1_DASH_STYLE.D2D1_DASH_STYLE_CUSTOM, 0.0f);
+			hr = m_pDirect2dFactory.CreateStrokeStyle(&ssp, dashes.ptr,
+					cast(uint) dashes.length, &m_pStrokeStyleCustomOffsetZero.ptr);
+					*/
+
+			auto white = D2D1_COLOR_F(1, 1, 0, 1);
 			m_pRenderTarget.Clear(&white);
 
-			auto rtSize = m_pRenderTarget.GetSize();
-
-			// Draw a grid background.
-			auto width = cast(int) rtSize.width;
-			auto height = cast(int) rtSize.height;
-
-			for (int x = 0; x < width; x += 10)
+			if (true)
 			{
-				auto s = D2D1_POINT_2F(x, 0);
-				auto e = D2D1_POINT_2F(x, height);
-				m_pRenderTarget.DrawLine(s, e, m_pLightSlateGrayBrush.ptr, 0.5f, null);
-			}
+				// Draw a grid background.
+				auto width = 640;
+				auto height = 480;
 
-			for (int y = 0; y < height; y += 10)
-			{
-				auto s = D2D1_POINT_2F(0, y);
-				auto e = D2D1_POINT_2F(width, y);
-				m_pRenderTarget.DrawLine(s, e, m_pLightSlateGrayBrush, 0.5f, null);
-			}
+				for (int x = 0; x < width; x += 10)
+				{
+					auto s = D2D_POINT_2F(x, 0);
+					auto e = D2D_POINT_2F(x, height);
+					m_pRenderTarget.DrawLine(s, e, m_pLightSlateGrayBrush.ptr, 0.5f, null);
+				}
 
+				for (int y = 0; y < height; y += 10)
+				{
+					auto s = D2D1_POINT_2F(0, y);
+					auto e = D2D1_POINT_2F(width, y);
+					m_pRenderTarget.DrawLine(s, e, m_pLightSlateGrayBrush, 0.5f, null);
+				}
+
+				/*
 			auto rectangle1 = D2D1_RECT_F(rtSize.width / 2 - 50.0f,
 					rtSize.height / 2 - 50.0f, rtSize.width / 2 + 50.0f, rtSize.height / 2 + 50.0f);
 			// Draw a filled rectangle.
@@ -168,7 +187,11 @@ struct DemoApp
 					+ 100.0f);
 			// Draw the outline of a rectangle.
 			m_pRenderTarget.DrawRectangle(&rectangle2, m_pCornflowerBlueBrush.ptr, 1.0f, null);
+			*/
+			}
 
+			D2D1_TAG tag1;
+			D2D1_TAG tag2;
 			hr = m_pRenderTarget.EndDraw(null, null);
 
 			if (hr == D2DERR_RECREATE_TARGET)
@@ -261,6 +284,7 @@ extern (Windows) LRESULT WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 extern (Windows) int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 		LPSTR lpCmdLine, int nCmdShow)
 {
+
 	Runtime.initialize();
 	scope (exit)
 		Runtime.terminate();
