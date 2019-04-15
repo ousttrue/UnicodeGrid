@@ -1,4 +1,4 @@
-// pycpptool generated: 2019-04-14 23:50:55.123030
+// pycpptool generated: 2019-04-15 21:18:23.049548
 module windowskits.build_10_0_17763_0.dxgitype;
 
 import core.sys.windows.windef;

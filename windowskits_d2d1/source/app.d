@@ -156,27 +156,25 @@ struct DemoApp
 			auto white = D2D1_COLOR_F(1, 1, 0, 1);
 			m_pRenderTarget.Clear(&white);
 
-			if (true)
+			// Draw a grid background.
+			auto width = 640;
+			auto height = 480;
+
+			for (int x = 0; x < width; x += 10)
 			{
-				// Draw a grid background.
-				auto width = 640;
-				auto height = 480;
+				auto s = D2D_POINT_2F(x, 0);
+				auto e = D2D_POINT_2F(x, height);
+				m_pRenderTarget.DrawLine(s, e, m_pLightSlateGrayBrush.ptr, 0.5f, null);
+			}
 
-				for (int x = 0; x < width; x += 10)
-				{
-					auto s = D2D_POINT_2F(x, 0);
-					auto e = D2D_POINT_2F(x, height);
-					m_pRenderTarget.DrawLine(s, e, m_pLightSlateGrayBrush.ptr, 0.5f, null);
-				}
+			for (int y = 0; y < height; y += 10)
+			{
+				auto s = D2D1_POINT_2F(0, y);
+				auto e = D2D1_POINT_2F(width, y);
+				m_pRenderTarget.DrawLine(s, e, m_pLightSlateGrayBrush, 0.5f, null);
+			}
 
-				for (int y = 0; y < height; y += 10)
-				{
-					auto s = D2D1_POINT_2F(0, y);
-					auto e = D2D1_POINT_2F(width, y);
-					m_pRenderTarget.DrawLine(s, e, m_pLightSlateGrayBrush, 0.5f, null);
-				}
-
-				/*
+			/*
 			auto rectangle1 = D2D1_RECT_F(rtSize.width / 2 - 50.0f,
 					rtSize.height / 2 - 50.0f, rtSize.width / 2 + 50.0f, rtSize.height / 2 + 50.0f);
 			// Draw a filled rectangle.
@@ -188,7 +186,6 @@ struct DemoApp
 			// Draw the outline of a rectangle.
 			m_pRenderTarget.DrawRectangle(&rectangle2, m_pCornflowerBlueBrush.ptr, 1.0f, null);
 			*/
-			}
 
 			D2D1_TAG tag1;
 			D2D1_TAG tag2;

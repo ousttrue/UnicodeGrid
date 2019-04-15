@@ -1,4 +1,4 @@
-// pycpptool generated: 2019-04-14 23:50:55.107407
+// pycpptool generated: 2019-04-15 21:18:23.062515
 module windowskits.build_10_0_17763_0.dcommon;
 
 import core.sys.windows.windef;
@@ -10,6 +10,7 @@ extern(Windows){
 alias IID = GUID;
 
 interface IDXGISurface: IUnknown {
+    static immutable iidof = GUID(0xcafcb56c, 0x6ac3, 0x4889, [0xbf, 0x47, 0x9e, 0x23, 0xbb, 0xd2, 0x60, 0xec]);
 }
 
 enum DWRITE_MEASURING_MODE {
